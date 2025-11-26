@@ -8,23 +8,27 @@ import random
 st.set_page_config(page_title="기계공학 미니게임 - 기어 맞추기", layout="centered")
 st.title("⚙️ 기계공학 미니게임: 기어 맞추기 ⚙️")
 
-# 초기 상태 저장
+# --- 초기 상태 ---
 if "level" not in st.session_state:
     st.session_state.level = 1
 if "gear_angles" not in st.session_state:
-    st.session_state.gear_angles = [0, 0, 0]
+    st.session_state.gear_angles = [0,0,0]
 if "gears" not in st.session_state:
     st.session_state.gears = []
 if "goal_angle" not in st.session_state:
     st.session_state.goal_angle = 0
+if "score" not in st.session_state:
+    st.session_state.score = 0
+if "max_level" not in st.session_state:
+    st.session_state.max_level = 10
 
+# --- 기어 생성 함수 ---
 def generate_gears(level):
     gears = [
         {'x': 1, 'y': 2, 'r': 0.5},
         {'x': 3, 'y': 2, 'r': 0.8},
         {'x': 5, 'y': 2, 'r': 0.4}
     ]
-    # 레벨마다 약간씩 위치 변경
     for g in gears:
         g['y'] += random.uniform(-0.5,0.5)
     goal_angle = 6 + level*0.5
@@ -33,13 +37,13 @@ def generate_gears(level):
 if not st.session_state.gears:
     st.session_state.gears, st.session_state.goal_angle = generate_gears(st.session_state.level)
 
+# --- 기어 그림 함수 ---
 def draw_gears():
     fig, ax = plt.subplots(figsize=(8,4))
     ax.set_xlim(0,6)
     ax.set_ylim(0,4)
     ax.set_aspect('equal')
     ax.axis('off')
-    
     colors = ['blue','red','green']
     for i, g in enumerate(st.session_state.gears):
         c = Circle((g['x'], g['y']), g['r'], fill=False, color=colors[i], lw=3)
@@ -48,29 +52,40 @@ def draw_gears():
                                 g['r']*math.cos(st.session_state.gear_angles[i]),
                                 g['r']*math.sin(st.session_state.gear_angles[i]),
                                 width=0.05, color=colors[i]))
-    
-    if abs(st.session_state.gear_angles[2]) >= st.session_state.goal_angle:
-        st.success(f"🎉 성공! 레벨 {st.session_state.level} 완료 🎉")
-    
     st.pyplot(fig)
 
+# --- 회전 함수 ---
 def rotate_left():
     st.session_state.gear_angles[0] -= 0.2
-    st.session_state.gear_angles[1] += 0.2 * (st.session_state.gears[0]['r']/st.session_state.gears[1]['r'])
-    st.session_state.gear_angles[2] -= 0.2 * (st.session_state.gears[0]['r']/st.session_state.gears[2]['r'])
+    st.session_state.gear_angles[1] += 0.2*(st.session_state.gears[0]['r']/st.session_state.gears[1]['r'])
+    st.session_state.gear_angles[2] -= 0.2*(st.session_state.gears[0]['r']/st.session_state.gears[2]['r'])
 
 def rotate_right():
     st.session_state.gear_angles[0] += 0.2
-    st.session_state.gear_angles[1] -= 0.2 * (st.session_state.gears[0]['r']/st.session_state.gears[1]['r'])
-    st.session_state.gear_angles[2] += 0.2 * (st.session_state.gears[0]['r']/st.session_state.gears[2]['r'])
+    st.session_state.gear_angles[1] -= 0.2*(st.session_state.gears[0]['r']/st.session_state.gears[1]['r'])
+    st.session_state.gear_angles[2] += 0.2*(st.session_state.gears[0]['r']/st.session_state.gears[2]['r'])
 
+# --- 다음 레벨 함수 ---
 def next_level():
-    st.session_state.level += 1
-    st.session_state.gear_angles = [0,0,0]
-    st.session_state.gears, st.session_state.goal_angle = generate_gears(st.session_state.level)
+    if st.session_state.level < st.session_state.max_level:
+        st.session_state.level += 1
+        st.session_state.gear_angles = [0,0,0]
+        st.session_state.gears, st.session_state.goal_angle = generate_gears(st.session_state.level)
+    else:
+        st.success(f"🏆 모든 레벨 완료! 최종 점수: {st.session_state.score}점 🏆")
 
-# UI 버튼
-col1, col2, col3 = st.columns(3)
+# --- 점수 계산 ---
+def check_success():
+    if abs(st.session_state.gear_angles[2]) >= st.session_state.goal_angle:
+        st.session_state.score += st.session_state.level*10
+        st.success(f"🎉 레벨 {st.session_state.level} 완료! 점수: {st.session_state.score} 🎉")
+        return True
+    return False
+
+# --- UI ---
+st.write(f"현재 레벨: {st.session_state.level} / {st.session_state.max_level} | 점수: {st.session_state.score}")
+
+col1, col2, col3 = st.columns([1,2,1])
 with col1:
     if st.button("⭠ 회전"):
         rotate_left()
@@ -80,7 +95,8 @@ with col3:
     if st.button("회전 ⭢"):
         rotate_right()
 
-if abs(st.session_state.gear_angles[2]) >= st.session_state.goal_angle:
-    if st.button("다음 레벨 ▶"):
-        next_level()
-        draw_gears()
+if check_success():
+    if st.session_state.level < st.session_state.max_level:
+        if st.button("다음 레벨 ▶"):
+            next_level()
+            draw_gears()
