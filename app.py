@@ -85,6 +85,9 @@ def check_success():
 # --- UI ---
 st.write(f"현재 레벨: {st.session_state.level} / {st.session_state.max_level} | 점수: {st.session_state.score}")
 
+# ✅ 목표와 현재 오른쪽 기어 각도 표시
+st.write(f"목표 각도: {st.session_state.goal_angle:.1f} | 현재 오른쪽 기어 각도: {abs(st.session_state.gear_angles[2]):.1f}")
+
 col1, col2, col3 = st.columns([1,2,1])
 with col1:
     if st.button("⭠ 회전"):
